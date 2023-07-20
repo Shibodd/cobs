@@ -61,23 +61,23 @@ static void cobs_test() {
       raw_count = (int)rand(1, 10);
       gen_raw(raw, raw_count);
       
-      CobsResult res = cobs_encode(raw, raw_count, &encoded_rb);
-      if (res != COBS_OK && res != COBS_NO_DST_SPACE_AVAILABLE) {
+      MmrCobsResult res = MMR_COBS_Encode(raw, raw_count, &encoded_rb);
+      if (res != MMR_COBS_OK && res != MMR_COBS_NO_DST_SPACE_AVAILABLE) {
         printf("ENCODE ERROR %d\n", res);
         return;
       }
-      if (res == COBS_OK) {
+      if (res == MMR_COBS_OK) {
         printf("ENCODED ");
         print(raw, raw_count);
         printf("\n");
       }
     } else {
-      CobsResult res = cobs_decode(&encoded_rb, raw, sizeof(raw), &raw_count);
-      if (res != COBS_OK && res != COBS_INVALID_SOURCE_LENGTH) {
+      MmrCobsResult res = MMR_COBS_Decode(&encoded_rb, raw, sizeof(raw), &raw_count);
+      if (res != MMR_COBS_OK && res != MMR_COBS_INVALID_SOURCE_LENGTH) {
         printf("DECODE ERROR %d\n", res);
         return;
       }
-      if (res == COBS_OK) {
+      if (res == MMR_COBS_OK) {
         printf("DECODED ");
         print(raw, raw_count);
         printf("\n");
