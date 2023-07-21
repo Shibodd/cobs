@@ -14,7 +14,6 @@ typedef struct RingBuffer {
 } RingBuffer;
 
 static inline int ring_buf_absolute_idx(int base, int idx, int len) {
-static inline int ring_buf_absolute_idx(int base, int idx, int len) {
   return (base + idx) % len;
 }
 
