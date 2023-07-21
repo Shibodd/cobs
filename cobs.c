@@ -1,92 +1,66 @@
 #include <cobs.h>
 
-/**
- * @brief Frames data with the COBS encoding into the ring buffer dst.
- * @note Support for lengths > 255 has not been implemented.
-*/
-MmrCobsResult MMR_COBS_Encode(uint8_t* src, int src_len, RingBuffer* dst) {
-  if (src_len > 0xFF) {
-    return MMR_COBS_NOT_IMPLEMENTED;
-  }
+static inline unsigned int udiv_ceil(unsigned int x, unsigned int y) {
+  return x / y + (x % y != 0);
+}
 
-  if (src_len <= 0) {
-    return MMR_COBS_INVALID_SOURCE_LENGTH;
-  }
+bool MMR_COBS_EnoughSpaceToEncode(const RingBuffer* dst, int src_len) {
+  int overhead = udiv_ceil(src_len, UINT8_MAX - 1) + 2;
+  return ring_buf_space_available(dst) >= src_len + overhead;
+}
 
-  int dst_idx = dst->count;
-  if (dst_idx + src_len + 3 > dst->len) {
+MmrCobsResult MMR_COBS_BeginEncode(RingBuffer* dst, int* dst_idx, int* cobs_idx) {
+  if (ring_buf_space_available(dst) <= 0) {
     return MMR_COBS_NO_DST_SPACE_AVAILABLE;
   }
-  
-  *ring_buf_ref(dst, dst_idx++) = 0;
-  int cobs_idx = dst_idx++;
-
-  for (int src_i = 0; src_i < src_len; ++src_i, ++dst_idx) {
-    uint8_t byte = src[src_i];
-
-    if (byte == 0) {
-      *ring_buf_ref(dst, cobs_idx) = dst_idx - cobs_idx;
-      cobs_idx = dst_idx;
-    } else {
-      *ring_buf_ref(dst, dst_idx) = byte;
-    }
-  }
-
-  *ring_buf_ref(dst, cobs_idx) = dst_idx - cobs_idx;
-  *ring_buf_ref(dst, dst_idx) = 0;
-
-  dst->count += src_len + 3;
+  *dst_idx = dst->count + 1;
+  *cobs_idx = dst->count;
   return MMR_COBS_OK;
 }
 
-/**
- * @brief Decodes data framed and encoded with COBS contained in the ring buffer src.
-*/
-MmrCobsResult MMR_COBS_Decode(RingBuffer* src, uint8_t* dst, int dst_len, int* decoded_bytes) {
-  if (src->count < 3) {
+MmrCobsResult MMR_COBS_ContinueEncode(const uint8_t* src, int src_len, RingBuffer* dst, int* dst_idx, int* cobs_idx) {
+  if (src_len <= 0) {
     return MMR_COBS_INVALID_SOURCE_LENGTH;
   }
 
   int src_idx = 0;
 
-  // Assert first byte == 0
-  if (*ring_buf_ref(src, src_idx) != 0) {
-    return MMR_COBS_DECODE_BAD_ENCODING;
-  }
-  ++src_idx;
-  
-  int cobs_idx = src_idx + *ring_buf_ref(src, src_idx);
-  ++src_idx;
-
-  int dst_idx = 0;
-  uint8_t byte;
-
-  while ((byte = *ring_buf_ref(src, src_idx)) != 0) {
-    if (dst_idx >= dst_len) {
+  while (src_idx < src_len) {
+    if (*dst_idx >= dst->len) {
       return MMR_COBS_NO_DST_SPACE_AVAILABLE;
     }
-    if (src_idx >= src->count) {
-      return MMR_COBS_INVALID_SOURCE_LENGTH;
-    }
 
-    if (src_idx == cobs_idx) {
-      dst[dst_idx] = 0;
-      cobs_idx = src_idx + byte;
+    uint8_t byte = src[src_idx];
+
+    int dist_from_cobs = *dst_idx - *cobs_idx;
+    if (dist_from_cobs >= UINT8_MAX) {
+      *ring_buf_ref(dst, *cobs_idx) = UINT8_MAX;
+      *cobs_idx = *dst_idx;
+
+      // Advance dst without consuming any input
+      ++(*dst_idx);
     } else {
-      dst[dst_idx] = byte;
+      if (byte == 0) {
+        *ring_buf_ref(dst, *cobs_idx) = dist_from_cobs;
+        *cobs_idx = *dst_idx;
+      } else {
+        *ring_buf_ref(dst, *dst_idx) = byte;
+      }
+
+      ++src_idx;
+      ++(*dst_idx);
     }
+  }
+  return MMR_COBS_OK;
+}
 
-    ++src_idx;
-    ++dst_idx;
+MmrCobsResult MMR_COBS_EndEncode(RingBuffer* dst, int* dst_idx, int* cobs_idx) {
+  if (*dst_idx >= dst->len) {
+    return MMR_COBS_NO_DST_SPACE_AVAILABLE;
   }
 
-  if (cobs_idx != src_idx) {
-    return MMR_COBS_DECODE_BAD_ENCODING;
-  }
-
-  ++src_idx;
-  src->first = ring_buf_absolute_idx(0, src->first + src_idx, src->len);
-  src->count -= src_idx;
-  *decoded_bytes = dst_idx;
+  *ring_buf_ref(dst, *cobs_idx) = *dst_idx - *cobs_idx;
+  *ring_buf_ref(dst, *dst_idx) = 0;
+  dst->count = *dst_idx + 1;
   return MMR_COBS_OK;
 }
