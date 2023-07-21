@@ -13,8 +13,8 @@ MmrCobsResult MMR_COBS_BeginEncode(RingBuffer* dst, int* dst_idx, int* cobs_idx)
   if (ring_buf_space_available(dst) <= 0) {
     return MMR_COBS_NO_DST_SPACE_AVAILABLE;
   }
-  *dst_idx = dst->count + 1;
-  *cobs_idx = dst->count;
+  *cobs_idx = 0;
+  *dst_idx = 1;
   return MMR_COBS_OK;
 }
 
@@ -26,7 +26,7 @@ MmrCobsResult MMR_COBS_ContinueEncode(const uint8_t* src, int src_len, RingBuffe
   int src_idx = 0;
 
   while (src_idx < src_len) {
-    if (*dst_idx >= dst->len) {
+    if (*dst_idx >= dst->len - dst->count) {
       return MMR_COBS_NO_DST_SPACE_AVAILABLE;
     }
 
@@ -34,17 +34,17 @@ MmrCobsResult MMR_COBS_ContinueEncode(const uint8_t* src, int src_len, RingBuffe
 
     int dist_from_cobs = *dst_idx - *cobs_idx;
     if (dist_from_cobs >= UINT8_MAX) {
-      *ring_buf_ref(dst, *cobs_idx) = UINT8_MAX;
+      *ring_buf_ref(dst, dst->count + *cobs_idx) = UINT8_MAX;
       *cobs_idx = *dst_idx;
 
       // Advance dst without consuming any input
       ++(*dst_idx);
     } else {
       if (byte == 0) {
-        *ring_buf_ref(dst, *cobs_idx) = dist_from_cobs;
+        *ring_buf_ref(dst, dst->count + *cobs_idx) = dist_from_cobs;
         *cobs_idx = *dst_idx;
       } else {
-        *ring_buf_ref(dst, *dst_idx) = byte;
+        *ring_buf_ref(dst, dst->count + *dst_idx) = byte;
       }
 
       ++src_idx;
@@ -55,12 +55,12 @@ MmrCobsResult MMR_COBS_ContinueEncode(const uint8_t* src, int src_len, RingBuffe
 }
 
 MmrCobsResult MMR_COBS_EndEncode(RingBuffer* dst, int* dst_idx, int* cobs_idx) {
-  if (*dst_idx >= dst->len) {
+  if (*dst_idx >= dst->len - dst->count) {
     return MMR_COBS_NO_DST_SPACE_AVAILABLE;
   }
 
-  *ring_buf_ref(dst, *cobs_idx) = *dst_idx - *cobs_idx;
-  *ring_buf_ref(dst, *dst_idx) = 0;
-  dst->count = *dst_idx + 1;
+  *ring_buf_ref(dst, dst->count + *cobs_idx) = *dst_idx - *cobs_idx;
+  *ring_buf_ref(dst, dst->count + *dst_idx) = 0;
+  dst->count += *dst_idx + 1;
   return MMR_COBS_OK;
 }
