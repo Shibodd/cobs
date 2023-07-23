@@ -32,24 +32,38 @@ def zcp_read(ser: serial.Serial, crc_calculator: crc.Calculator):
       continue
 
     return data
+  
 
+def log_msg(seq_id: int, msg_def: logger_def.LoggerDef, values: dict):
+  logging.info((seq_id, msg_def, values))
+  
+  
 def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
   if len(frame) < 3:
-    logging.warning(f"Skipped frame too short to be a logger frame")
+    logging.warning(f"Skipped frame too short to be a logger message")
     return
   
   header, data = frame[:3], frame[3:]
-  
+
   seq_id, msg_id = struct.unpack('<BH', header)
 
   msg_def = log_def.messages.get(msg_id, None)
   if msg_def is None:
-    logging.warning(f"Skipped message {seq_id} due to unknown id ({msg_id})")
+    logging.warning(f"Discarded message {seq_id} due to unknown id {msg_id}")
     return
 
-  logging.info(f"Handling message {seq_id} with id {msg_id}")
+  if len(msg_def.fields) > 0:
+    try:
+      values_list = struct.unpack(msg_def.struct_fmt, data)
+    except struct.error as e:
+      logging.warning(f"Discarded message {seq_id} due to payload ({len(data)} bytes long) parse error: {e}")
+      return
+    
+    values = dict(zip((field.name for field in msg_def.fields), values_list))
+  else:
+    values = None
 
-
+  log_msg(seq_id, msg_def, values)
 
 
 if __name__ == '__main__':

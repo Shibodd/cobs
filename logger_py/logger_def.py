@@ -43,9 +43,9 @@ def __parse_field(f: dict):
   return MessageFieldDef(f["name"], f["type"])
 
 def __parse_message_def(id: str, m: dict):
-  fields = [__parse_field(f) for f in m.get('fields', [])]
+  fields = [__parse_field(f) for f in m.get('fields', tuple())]
   nId = int(id)
-  struct_fmt = "<" + "".join(TYPE_TO_STRUCT_MAP[x.type_id] for x in fields)
+  struct_fmt = None if len(fields) <= 0 else ("<" + "".join(TYPE_TO_STRUCT_MAP[x.type_id] for x in fields))
 
   return (nId, MessageDef(nId, m["name"], m["fmt"], fields, struct_fmt))
 
