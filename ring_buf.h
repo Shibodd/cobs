@@ -24,7 +24,7 @@ static inline int ring_buf_idx(const RingBuffer* buf, int idx) {
 static inline uint8_t* ring_buf_ref(const RingBuffer* buf, int idx) {
   return &buf->data[ring_buf_idx(buf, idx)];
 }
-#include <stdio.h>
+
 static inline int ring_buf_space_available(const RingBuffer* buf) {
   return buf->len - buf->count;
 }

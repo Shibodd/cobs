@@ -1,4 +1,5 @@
-
+#ifndef MMR_ZCP_H
+#define MMR_ZCP_H
 
 #include <ring_buf.h>
 #include <stdint.h>
@@ -66,3 +67,5 @@ bool MMR_ZCP_TxTransactionBegin(MmrZcpInstance* instance);
 bool MMR_ZCP_TxTransactionAppend(MmrZcpInstance* instance, uint8_t* data, int len);
 bool MMR_ZCP_TxTransactionCommit(MmrZcpInstance* instance);
 void MMR_ZCP_TxTransactionAbort(MmrZcpInstance* instance);
+
+#endif // !MMR_ZCP_H
