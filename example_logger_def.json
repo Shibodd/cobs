@@ -1,0 +1,25 @@
+{
+  "messages": {
+    "1": {
+      "name": "BadEbsPressure",
+      "fmt": "Bad ebs pressure (1: {ebsPressure1}, 2: {ebsPressure2})",
+      "fields": [
+        { "name": "ebsPressure1", "type": "f32" },
+        { "name": "ebsPressure2", "type": "f32" }
+      ]
+    },
+
+    "2": {
+      "name": "ShiftUpCanSwToggled",
+      "fmt": "Shift up canSw toggled"
+    },
+
+    "3": {
+      "name": "MissionChanged",
+      "fmt": "Mission changed to {mission}",
+      "fields": [
+        { "name": "mission", "type": "u8" }
+      ]
+    }
+  }
+}
