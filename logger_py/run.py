@@ -101,7 +101,6 @@ def log_msg(log: logging.Logger, msg: LogMsg):
     formatted = "MALFORMED"
 
   log.info(f"[{msg.seq_id}] @{msg.tick}ms : {formatted}")
-  logging.info(f"Logged entry {msg.seq_id} of type {msg.msg_def.id}")
 
 
 if __name__ == '__main__':
@@ -138,7 +137,7 @@ EXAMPLES:
   msg_logger = logging.getLogger('log-msg')
   msg_logger_handler = logging.StreamHandler(sys.stdout)
   msg_logger_handler.setLevel(logging.INFO)
-  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s | %(message)s'))
+  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s | %(message)s', datefmt='%Y-%m-%d,%H:%M:%S'))
   msg_logger.addHandler(msg_logger_handler)
 
   # Configure dependencies
