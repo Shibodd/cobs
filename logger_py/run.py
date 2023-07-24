@@ -6,6 +6,8 @@ import time
 import struct
 import logging
 from dataclasses import dataclass
+import contextlib
+import typing
 
 def read_until(source, terminator: bytes, max_size: int):
   ans = bytearray()
@@ -20,7 +22,7 @@ def read_until(source, terminator: bytes, max_size: int):
 
   return ans
 
-def zcp_read(source, crc_calculator: crc.Calculator):
+def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO = None):
   while True:
     # Assume data is always shorter than 256 bytes
     received = read_until(source, b'\0', 256)
@@ -28,6 +30,9 @@ def zcp_read(source, crc_calculator: crc.Calculator):
     if len(received) <= 0:
       # Time out to allow CTRL+C termination.
       continue
+
+    if dump_file is not None:
+      dump_file.write(received)
 
     if received[-1] != 0:
       logging.warning(f"Skipped {len(received)} bytes! Missing terminator or frame longer than 256 bytes?")
@@ -107,10 +112,12 @@ if __name__ == '__main__':
     EPILOG = """\
 EXAMPLES:
   %(prog)s my_definition.json serial /dev/ttyS0 9600
+  %(prog)s my_definition.json -d comms_dump.bin serial /dev/ttyS0 9600
   %(prog)s my_definition.json replay comms_dump.bin\
 """
     p = argparse.ArgumentParser(epilog = EPILOG, formatter_class = argparse.RawDescriptionHelpFormatter)
     p.add_argument('def_file', help = 'The logger definition json file.')
+    p.add_argument('-d', '--dump', help = 'Dump all raw data read to a file (see replay).')
     
     subp = p.add_subparsers(title = 'source', required = True, help = 'Where to read data from.', dest = 'source')
 
@@ -154,29 +161,40 @@ EXAMPLES:
     reverse_output = False
   ))
 
+  with contextlib.ExitStack() as ctx:
+    # Initialize the source
+    if args.source == 'serial':
+      try:
+        source = serial.Serial(args.serial_port, baudrate = args.baudrate, timeout = 5)
+      except serial.SerialException as e:
+        logging.fatal(f"Failed to open serial port! {e}")
+        exit(1)
 
-  # Initialize the source
-  if args.source == 'serial':
-    try:
-      source = serial.Serial(args.serial_port, baudrate = args.baudrate, timeout = 5)
-    except serial.SerialException as e:
-      logging.fatal(f"Failed to open serial port! {e}")
-      exit(1)
+    else:
+      try:
+        source = open(args.filename, 'rb')
+      except Exception as e:
+        logging.fatal(f"Failed to open file to replay! {e}")
+        exit(1)
+    
+    ctx.enter_context(source)
 
-  else:
-    try:
-      source = open(args.filename, 'rb')
-    except Exception as e:
-      logging.fatal(f"Failed to open file! {e}")
-      exit(1)
+    if args.dump is not None:
+      try:
+        dump_file = open(args.dump, 'wb')
+        ctx.enter_context(dump_file)
+      except Exception as e:
+        logging.fatal(f'Failed to open dump file! {e}')
+        exit(1)
+    else:
+      dump_file = None
 
-  with source:
     logging.info("Starting.")
 
     # Run the logger indefinitely.
     while True:
       try:
-        frame = zcp_read(source, crc_calculator)
+        frame = zcp_read(source, crc_calculator, dump_file)
         msg = parse_frame(log_def, frame)
         log_msg(msg_logger, msg)
       
