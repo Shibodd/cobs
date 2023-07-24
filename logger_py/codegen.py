@@ -15,15 +15,10 @@ def generate_logging_function_prototype(msg: logger_def.MessageDef):
 
 def generate_logging_function_body(msg: logger_def.MessageDef):
   FUNCTION_BODY = """ {{
-  uint32_t tick = MMR_GetTick();
-  WRITE_ASSERT(WRITE_BEGIN());
-  WRITE_ASSERT(WRITE_APPEND(seq_id));
-  WRITE_ASSERT(WRITE_APPEND(tick));
   uint16_t msg_id = {msg_id};
-  WRITE_ASSERT(WRITE_APPEND(msg_id))
+  WRITE_ASSERT(WRITE_BEGIN(msg_id));
 {content}
   WRITE_ASSERT(WRITE_END());
-  ++seq_id;
   return true;
 }}\n
 """
