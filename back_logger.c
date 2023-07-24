@@ -5,13 +5,6 @@ static MmrZcpInstance loggerZcpInstance;
 static uint8_t loggerTxBuffer[512];
 static uint8_t seq_id = 0;
 
-extern uint32_t uwTick;
-static inline uint32_t MMR_GetTick() {
-  return uwTick;
-}
-
-
-
 #define WRITE_BEGIN(id) writeBegin(id)
 #define WRITE_ASSERT(x) if (!(x)) { MMR_ZCP_TxTransactionAbort(HZCP); return false; }
 #define WRITE_APPEND(x) MMR_ZCP_TxTransactionAppend(HZCP, little_endian(x), sizeof(x))
