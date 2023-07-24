@@ -93,6 +93,7 @@ def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
 
   return LogMsg(seq_id, tick, msg_def, values)
 
+from datetime import timedelta
 def log_msg(log: logging.Logger, msg: LogMsg):
   if msg.values is not None:
     values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
@@ -100,7 +101,7 @@ def log_msg(log: logging.Logger, msg: LogMsg):
   else:
     formatted = "MALFORMED"
 
-  log.info(f"[{msg.seq_id}] @{msg.tick}ms : {formatted}")
+  log.info(f"[{msg.seq_id:03}] @{timedelta(milliseconds=msg.tick).total_seconds():.03f}s : {formatted}")
 
 
 if __name__ == '__main__':
@@ -137,7 +138,7 @@ EXAMPLES:
   msg_logger = logging.getLogger('log-msg')
   msg_logger_handler = logging.StreamHandler(sys.stdout)
   msg_logger_handler.setLevel(logging.INFO)
-  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s | %(message)s', datefmt='%Y-%m-%d,%H:%M:%S'))
+  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s %(message)s', datefmt='%H:%M:%S'))
   msg_logger.addHandler(msg_logger_handler)
 
   # Configure dependencies
@@ -190,11 +191,19 @@ EXAMPLES:
 
     logging.info("Starting.")
 
+
+    last_seq_id = None
+
     # Run the logger indefinitely.
     while True:
       try:
         frame = zcp_read(source, crc_calculator, dump_file)
         msg = parse_frame(log_def, frame)
+
+        if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
+          msg_logger.warning("!! SEQUENCE ID GAP !!")
+        last_seq_id = msg.seq_id
+
         log_msg(msg_logger, msg)
       
       except KeyboardInterrupt:
