@@ -4,12 +4,22 @@
 #include <ring_buf.h>
 #include <stdint.h>
 
-typedef bool (*MmrZcpBeginTransmission)(uint8_t* data, int size);
-typedef bool (*MmrZcpTransmissionCompleted)();
-typedef void (*MmrZcpResetCrc)();
-typedef void (*MmrZcpAccumulateCrc)(uint8_t* data, int size);
-typedef uint16_t (*MmrZcpGetCrc)();
+typedef struct MmrZcpBsp {
+  // Start transmitting data. If this returns false, transmission will be re-attempted at the next iteration.
+  bool (*txBegin)(uint8_t* data, int size);
 
+  // Whether the transmission started by the last call to txBegin is completed (and thus the data can be forgotten).
+  bool (*txCmplt)();
+
+  // Reset the CRC accumulator.
+  void (*crcReset)();
+
+  // Update the CRC with new data.
+  void (*crcAccumulate)(uint8_t* data, int size);
+
+  // Get the CRC of the data appended until now.
+  uint16_t (*crcGet)();
+} MmrZcpBsp;
 
 /*
 ZCP: Zero-termination and Checksum Protocol
@@ -42,26 +52,15 @@ typedef struct MmrZcpInstance {
   // The size of the data which is being transmitted.
   int txTransmissionSize;
 
-  // Start transmitting data. If this returns false, transmission will be re-attempted at the next iteration.
-  MmrZcpBeginTransmission txBegin;
-
-  // Whether the transmission started by the last call to txBegin is completed (and thus the data can be forgotten).
-  MmrZcpTransmissionCompleted txCmplt;
-
-  MmrZcpResetCrc crcReset;
-  MmrZcpGetCrc crcGet;
-  MmrZcpAccumulateCrc crcAccumulate;
+  MmrZcpBsp bsp;
 } MmrZcpInstance;
 
 void MMR_ZCP_Init(
     MmrZcpInstance* instance,
     uint8_t* txbuf,
     int txbuf_size,
-    MmrZcpBeginTransmission txBegin,
-    MmrZcpTransmissionCompleted txCmplt,
-    MmrZcpResetCrc crcReset,
-    MmrZcpGetCrc crcGet,
-    MmrZcpAccumulateCrc crcAccumulate);
+    MmrZcpBsp bsp);
+    
 void MMR_ZCP_Run(MmrZcpInstance* instance);
 bool MMR_ZCP_TxTransactionBegin(MmrZcpInstance* instance);
 bool MMR_ZCP_TxTransactionAppend(MmrZcpInstance* instance, uint8_t* data, int len);

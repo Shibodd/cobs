@@ -15,11 +15,7 @@ void MMR_ZCP_Init(
     MmrZcpInstance* instance,
     uint8_t* txbuf,
     int txbuf_size,
-    MmrZcpBeginTransmission txBegin,
-    MmrZcpTransmissionCompleted txCmplt,
-    MmrZcpResetCrc crcReset,
-    MmrZcpGetCrc crcGet,
-    MmrZcpAccumulateCrc crcAccumulate) {
+    MmrZcpBsp bsp) {
   instance->txBuf = (RingBuffer) {
     .data = txbuf,
     .len = txbuf_size,
@@ -31,11 +27,7 @@ void MMR_ZCP_Init(
   instance->txTransmitting = false;
   instance->txTransmissionSize = 0;
 
-  instance->txBegin = txBegin;
-  instance->txCmplt = txCmplt;
-  instance->crcReset = crcReset;
-  instance->crcGet = crcGet;
-  instance->crcAccumulate = crcAccumulate;
+  instance->bsp = bsp;
 }
 
 void MMR_ZCP_Run(MmrZcpInstance* instance) {
