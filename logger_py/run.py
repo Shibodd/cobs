@@ -57,16 +57,6 @@ class LogMsg:
   msg_def: logger_def.MessageDef
   values: tuple
 
-def log_msg(log: logging.Logger, msg: LogMsg):
-  if msg.values is not None:
-    values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
-    formatted = msg.msg_def.fmt.format(**values_dict)
-  else:
-    formatted = "MALFORMED"
-
-  log.info(f"[{msg.seq_id}] @{msg.tick}ms : {formatted}")
-  logging.info(f"Logged entry {msg.seq_id} of type {msg.msg_def.id}")
-
 def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
   HEADER_FMT = '<BLH'
   HEADER_SIZE = struct.calcsize(HEADER_FMT)
@@ -98,7 +88,15 @@ def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
 
   return LogMsg(seq_id, tick, msg_def, values)
 
+def log_msg(log: logging.Logger, msg: LogMsg):
+  if msg.values is not None:
+    values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
+    formatted = msg.msg_def.fmt.format(**values_dict)
+  else:
+    formatted = "MALFORMED"
 
+  log.info(f"[{msg.seq_id}] @{msg.tick}ms : {formatted}")
+  logging.info(f"Logged entry {msg.seq_id} of type {msg.msg_def.id}")
 
 
 if __name__ == '__main__':
