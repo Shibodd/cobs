@@ -34,7 +34,7 @@ void MMR_ZCP_Run(MmrZcpInstance* instance) {
   RingBuffer* txBuf = &instance->txBuf;
 
   if (instance->txTransmitting) {
-    if (instance->txCmplt()) {
+    if (instance->bsp.txCmplt()) {
       instance->txTransmitting = false;
       txBuf->first = ring_buf_idx(txBuf, instance->txTransmissionSize);
       txBuf->count -= instance->txTransmissionSize;
@@ -54,7 +54,7 @@ void MMR_ZCP_Run(MmrZcpInstance* instance) {
     size = txBuf->count;
   }
 
-  if (!instance->txBegin(ring_buf_ref(txBuf, 0), size)) {
+  if (!instance->bsp.txBegin(ring_buf_ref(txBuf, 0), size)) {
     return;
   }
 
@@ -74,7 +74,7 @@ bool MMR_ZCP_TxTransactionBegin(MmrZcpInstance* instance) {
 
   instance->txTransactionSize = 0;
   instance->txTransactionInProgress = true;
-  instance->crcReset();
+  instance->bsp.crcReset();
   return true;
 }
 
@@ -91,7 +91,7 @@ bool MMR_ZCP_TxTransactionAppend(MmrZcpInstance* instance, uint8_t* data, int le
     return false;
   }
 
-  instance->crcAccumulate(data, len);
+  instance->bsp.crcAccumulate(data, len);
   instance->txTransactionSize += len;
   return true;
 }
@@ -101,7 +101,7 @@ bool MMR_ZCP_TxTransactionCommit(MmrZcpInstance* instance) {
     return false;
   }
 
-  uint16_t crc16 = instance->crcGet();
+  uint16_t crc16 = instance->bsp.crcGet();
   uint8_t crc16_little_endian[sizeof(uint16_t)] = {
 	  crc16 & 0xFF,
 	  (crc16 >> 8) & 0xFF
