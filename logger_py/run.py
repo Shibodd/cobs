@@ -27,10 +27,6 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
     # Assume data is always shorter than 256 bytes
     received = read_until(source, b'\0', 256)
 
-    if len(received) <= 0:
-      # Time out to allow CTRL+C termination.
-      continue
-
     if dump_file is not None:
       dump_file.write(received)
 
@@ -165,7 +161,7 @@ EXAMPLES:
     # Initialize the source
     if args.source == 'serial':
       try:
-        source = serial.Serial(args.serial_port, baudrate = args.baudrate, timeout = 5)
+        source = serial.Serial(args.serial_port, baudrate = args.baudrate)
       except serial.SerialException as e:
         logging.fatal(f"Failed to open serial port! {e}")
         exit(1)
@@ -199,12 +195,12 @@ EXAMPLES:
       try:
         frame = zcp_read(source, crc_calculator, dump_file)
         msg = parse_frame(log_def, frame)
+        if msg is not None:
+          if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
+            msg_logger.warning("!! SEQUENCE ID GAP !!")
+          last_seq_id = msg.seq_id
 
-        if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
-          msg_logger.warning("!! SEQUENCE ID GAP !!")
-        last_seq_id = msg.seq_id
-
-        log_msg(msg_logger, msg)
+          log_msg(msg_logger, msg)
       
       except KeyboardInterrupt:
         logging.info("Exiting due to CTRL+C.")
