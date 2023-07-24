@@ -4,11 +4,26 @@ from cobs import cobs
 import crc
 import time
 import struct
+import logging
+from dataclasses import dataclass
 
-def zcp_read(ser: serial.Serial, crc_calculator: crc.Calculator):
+def read_until(source, terminator: bytes, max_size: int):
+  ans = bytearray()
+  term_len = len(terminator)
+
+  while len(ans) < max_size and ans[-term_len:] != terminator:
+    c = source.read(1)
+    if c:
+      ans += c
+    else:
+      break
+
+  return ans
+
+def zcp_read(source, crc_calculator: crc.Calculator):
   while True:
     # Assume data is always shorter than 256 bytes
-    received = ser.read_until(b'\0', 256)
+    received = read_until(source, b'\0', 256)
 
     if len(received) <= 0:
       # Time out to allow CTRL+C termination.
@@ -18,12 +33,14 @@ def zcp_read(ser: serial.Serial, crc_calculator: crc.Calculator):
       logging.warning(f"Skipped {len(received)} bytes! Missing terminator or frame longer than 256 bytes?")
       continue
     
+    # Decode COBS
     try:
       decoded = cobs.decode(received[:-1])
     except cobs.DecodeError as de:
       logging.warning(f"Skipped a frame due to failed COBS decode! {de}")
       continue
 
+    # Verify CRC
     crc_value = (decoded[-1] << 8) + decoded[-2]
     data = decoded[:-2]
 
@@ -32,52 +49,94 @@ def zcp_read(ser: serial.Serial, crc_calculator: crc.Calculator):
       continue
 
     return data
-  
 
-def log_msg(seq_id: int, msg_def: logger_def.LoggerDef, values: dict):
-  logging.info((seq_id, msg_def, values))
-  
-  
+@dataclass
+class LogMsg:
+  seq_id: int
+  tick: int
+  msg_def: logger_def.MessageDef
+  values: tuple
+
+def log_msg(log: logging.Logger, msg: LogMsg):
+  if msg.values is not None:
+    values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
+    formatted = msg.msg_def.fmt.format(**values_dict)
+  else:
+    formatted = "MALFORMED"
+
+  log.info(f"[{msg.seq_id}] @{msg.tick}ms : {formatted}")
+  logging.info(f"Logged entry {msg.seq_id} of type {msg.msg_def.id}")
+
 def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
-  if len(frame) < 3:
+  HEADER_FMT = '<BLH'
+  HEADER_SIZE = struct.calcsize(HEADER_FMT)
+
+  if len(frame) < HEADER_SIZE:
     logging.warning(f"Skipped frame too short to be a logger message")
     return
   
-  header, data = frame[:3], frame[3:]
+  header, data = frame[:HEADER_SIZE], frame[HEADER_SIZE:]
 
-  seq_id, msg_id = struct.unpack('<BH', header)
+  # Parse the header
+  seq_id, tick, msg_id = struct.unpack(HEADER_FMT, header)
 
   msg_def = log_def.messages.get(msg_id, None)
-  if msg_def is None:
-    logging.warning(f"Discarded message {seq_id} due to unknown id {msg_id}")
-    return
 
-  if len(msg_def.fields) > 0:
-    try:
-      values_list = struct.unpack(msg_def.struct_fmt, data)
-    except struct.error as e:
-      logging.warning(f"Discarded message {seq_id} due to payload ({len(data)} bytes long) parse error: {e}")
-      return
-    
-    values = dict(zip((field.name for field in msg_def.fields), values_list))
-  else:
+  if msg_def is None:
+    logging.warning(f"Message {seq_id} has unknown id {msg_id}")
     values = None
 
-  log_msg(seq_id, msg_def, values)
+  elif len(msg_def.fields) > 0:
+    # Parse the data/payload
+    try:
+      values = struct.unpack(msg_def.struct_fmt, data)
+    except struct.error as e:
+      logging.warning(f"Message {seq_id} has malformed payload ({len(data)} bytes long): {e}")
+      values = None
+  else:
+    values = tuple()
+
+  return LogMsg(seq_id, tick, msg_def, values)
+
+
 
 
 if __name__ == '__main__':
   import argparse
+  import sys
 
-  argparser = argparse.ArgumentParser()
-  argparser.add_argument('def_file')
-  argparser.add_argument('serial_port')
-  argparser.add_argument('baudrate')
-  args = argparser.parse_args()
+  def parse_args():
+    EPILOG = """\
+EXAMPLES:
+  %(prog)s my_definition.json serial /dev/ttyS0 9600
+  %(prog)s my_definition.json replay comms_dump.bin\
+"""
+    p = argparse.ArgumentParser(epilog = EPILOG, formatter_class = argparse.RawDescriptionHelpFormatter)
+    p.add_argument('def_file', help = 'The logger definition json file.')
+    
+    subp = p.add_subparsers(title = 'source', required = True, help = 'Where to read data from.', dest = 'source')
 
-  import logging
-  logging.basicConfig(format='%(asctime)s [%(levelname)s] %(funcName)s: %(message)s', level=logging.DEBUG)
+    ser_p = subp.add_parser('serial', help = 'Read from a serial port.')
+    ser_p.add_argument('serial_port')
+    ser_p.add_argument('baudrate')
 
+    file_p = subp.add_parser('replay', help = 'Read from a binary file.')
+    file_p.add_argument('filename')
+
+    return p.parse_args()
+  
+  args = parse_args()
+
+  # Configure logging
+  logging.basicConfig(format='%(asctime)s [%(levelname)s] %(funcName)s: %(message)s', level=logging.DEBUG, stream = sys.stderr)
+
+  msg_logger = logging.getLogger('log-msg')
+  msg_logger_handler = logging.StreamHandler(sys.stdout)
+  msg_logger_handler.setLevel(logging.INFO)
+  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s | %(message)s'))
+  msg_logger.addHandler(msg_logger_handler)
+
+  # Configure dependencies
   logging.info("Initializing dependencies...")
 
   # Parse the logger definition
@@ -97,21 +156,31 @@ if __name__ == '__main__':
     reverse_output = False
   ))
 
-  # Open the serial port
-  try:
-    ser = serial.Serial(args.serial_port, baudrate = args.baudrate, timeout = 5)
-  except serial.SerialException as e:
-    logging.fatal(f"Failed to open serial port! {e}")
-    exit(1)
 
-  with ser:
+  # Initialize the source
+  if args.source == 'serial':
+    try:
+      source = serial.Serial(args.serial_port, baudrate = args.baudrate, timeout = 5)
+    except serial.SerialException as e:
+      logging.fatal(f"Failed to open serial port! {e}")
+      exit(1)
+
+  else:
+    try:
+      source = open(args.filename, 'rb')
+    except Exception as e:
+      logging.fatal(f"Failed to open file! {e}")
+      exit(1)
+
+  with source:
     logging.info("Starting.")
 
     # Run the logger indefinitely.
     while True:
       try:
-        frame = zcp_read(ser, crc_calculator)
-        parse_frame(log_def, frame)
+        frame = zcp_read(source, crc_calculator)
+        msg = parse_frame(log_def, frame)
+        log_msg(msg_logger, msg)
       
       except KeyboardInterrupt:
         logging.info("Exiting due to CTRL+C.")
