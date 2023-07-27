@@ -1,0 +1,114 @@
+{
+  "messages": {
+    "0": {
+      "name": "Heartbeat",
+      "fmt": "I'm alive!"
+    },
+    "1": {
+      "name": "AutonomousLaunchStateChanged",
+      "fmt": "Autonomous launch transition to state {state}",
+      "fields": [
+        { "name": "state", "type": "u8" }
+      ]
+    },
+    "2": {
+      "name": "ClutchStateChanged",
+      "fmt": "Clutch state changed to {state}",
+      "fields": [
+        { "name": "state", "type": "u8" }
+      ]
+    },
+    "3": {
+      "name": "EbsCheckStateChanged",
+      "fmt": "EBS check state changed to {state}",
+      "fields": [
+        { "name": "state", "type": "u8" }
+      ]
+    },
+    "4": {
+      "name": "InfiR2D",
+      "fmt": "Received InfiR2D"
+    },
+    "5": {
+      "name": "LapChanged",
+      "fmt": "Lap changed to {lap}",
+      "fields": [
+        { "name": "lap", "type": "u8" }
+      ]
+    },
+    "6": {
+      "name": "LaunchControlChanged",
+      "fmt": "LC changed to {state}",
+      "fields": [
+        { "name": "state", "type": "u8" }
+      ]
+    },
+    "7": {
+      "name": "ManualStateChanged",
+      "fmt": "Manual state changed to {state}",
+      "fields": [
+        { "name": "state", "type": "u8" }
+      ]
+    },
+    "8": {
+      "name": "MissionFinished",
+      "fmt": "Received mission finished"
+    },
+    "9": {
+      "name": "MissionReady",
+      "fmt": "Received mission ready"
+    },
+    "10": {
+      "name": "ResButtonsChanged",
+      "fmt": "Res buttons changed to {buttons}",
+      "fields": [
+        { "name": "buttons", "type": "u8" }
+      ]
+    },
+    "11": {
+      "name": "SetLaunchControlAttempted",
+      "fmt": "Attempting to set LC"
+    },
+    "12": {
+      "name": "ShiftDownAttempted",
+      "fmt": "Attempting to shift down"
+    },
+    "13": {
+      "name": "ShiftNeutralAttempted",
+      "fmt": "Attempting to shift to neutral"
+    },
+    "14": {
+      "name": "ShiftUpAttempted",
+      "fmt": "Attempting to shift up"
+    },
+    "15": {
+      "name": "UnsetLaunchControlAttempted",
+      "fmt": "Attempting to unset launch control"
+    },
+    "16": {
+      "name": "VehicleStandstill",
+      "fmt": "Received vehicle standstill"
+    },
+    "17": {
+      "name": "WritingInfiAth",
+      "fmt": "Writing infi throttle ({infiAth})",
+      "fields": [
+        { "name": "infiAth", "type": "f32" }
+      ]
+    },
+    "18": {
+      "name": "AsmsChanged",
+      "fmt": "Asms changed to {asms}",
+      "fields": [
+        { "name": "asms", "type": "bool" }
+      ]
+    },
+    "19": {
+      "name": "MissionChanged",
+      "fmt": "Mission changed to {mission}",
+      "fields": [
+        { "name": "mission", "type": "u8" }
+      ]
+    }
+  }
+}
