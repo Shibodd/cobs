@@ -42,10 +42,11 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
       continue
 
     # Verify CRC
-    crc_value = (decoded[-1] << 8) + decoded[-2]
-    data = decoded[:-2]
+    data = decoded[:-4]
+    received_crc = struct.unpack('<L', decoded[-4:])
+    computed_crc = crc_calculator.checksum(data)
 
-    if not crc_calculator.verify(data, crc_value):
+    if received_crc != computed_crc:
       logging.warning(f"Skipped a frame due to CRC mismatch!")
       continue
 
