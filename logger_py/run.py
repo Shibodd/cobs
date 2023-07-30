@@ -46,9 +46,9 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
     data = decoded[:-4]
     received_crc = struct.unpack('<L', decoded[-4:])
 
-    if not crc_calculator.verify(data, received_crc):
-      logging.warning(f"Skipped a frame due to CRC mismatch!")
-      continue
+    #if not crc_calculator.verify(data, received_crc):
+    #  logging.warning(f"Skipped a frame due to CRC mismatch!")
+    #  continue
 
     return data
 
@@ -174,6 +174,8 @@ EXAMPLES:
       except Exception as e:
         logging.fatal(f"Failed to open file to replay! {e}")
         exit(1)
+
+      dump_file = None
     
     ctx.enter_context(source)
 
