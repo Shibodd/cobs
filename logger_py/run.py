@@ -3,6 +3,7 @@ import serial
 from cobs import cobs
 import crc
 import time
+from datetime import datetime
 import struct
 import logging
 from dataclasses import dataclass
@@ -44,9 +45,8 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
     # Verify CRC
     data = decoded[:-4]
     received_crc = struct.unpack('<L', decoded[-4:])
-    computed_crc = crc_calculator.checksum(data)
 
-    if received_crc != computed_crc:
+    if not crc_calculator.verify(data, received_crc):
       logging.warning(f"Skipped a frame due to CRC mismatch!")
       continue
 
@@ -91,14 +91,14 @@ def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
   return LogMsg(seq_id, tick, msg_def, values)
 
 from datetime import timedelta
-def log_msg(log: logging.Logger, msg: LogMsg):
+def log_msg(msg: LogMsg):
   if msg.values is not None:
     values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
     formatted = msg.msg_def.fmt.format(**values_dict)
   else:
     formatted = "MALFORMED"
 
-  log.info(f"[{msg.seq_id:03}] @{timedelta(milliseconds=msg.tick).total_seconds():.03f}s : {formatted}")
+  logging.info(f"[{msg.seq_id:03}] @{timedelta(milliseconds=msg.tick).total_seconds():.03f}s : {formatted}")
 
 
 if __name__ == '__main__':
@@ -114,7 +114,6 @@ EXAMPLES:
 """
     p = argparse.ArgumentParser(epilog = EPILOG, formatter_class = argparse.RawDescriptionHelpFormatter)
     p.add_argument('def_file', help = 'The logger definition json file.')
-    p.add_argument('-d', '--dump', help = 'Dump all raw data read to a file (see replay).')
     
     subp = p.add_subparsers(title = 'source', required = True, help = 'Where to read data from.', dest = 'source')
 
@@ -132,12 +131,6 @@ EXAMPLES:
   # Configure logging
   logging.basicConfig(format='%(asctime)s [%(levelname)s] %(funcName)s: %(message)s', level=logging.DEBUG, stream = sys.stderr)
 
-  msg_logger = logging.getLogger('log-msg')
-  msg_logger_handler = logging.StreamHandler(sys.stdout)
-  msg_logger_handler.setLevel(logging.INFO)
-  msg_logger_handler.setFormatter(logging.Formatter(fmt = '%(asctime)s %(message)s', datefmt='%H:%M:%S'))
-  msg_logger.addHandler(msg_logger_handler)
-
   # Configure dependencies
   logging.info("Initializing dependencies...")
 
@@ -150,9 +143,9 @@ EXAMPLES:
 
   # Setup the CRC calculator
   crc_calculator = crc.Calculator(crc.Configuration(
-    width = 16,
-    polynomial = 0x1021,
-    init_value = 0xFFFF,
+    width = 32,
+    polynomial = 0x4C11DB7,
+    init_value = 0xFFFFFFFF,
     final_xor_value = 0,
     reverse_input = False,
     reverse_output = False
@@ -176,32 +169,28 @@ EXAMPLES:
     
     ctx.enter_context(source)
 
-    if args.dump is not None:
-      try:
-        dump_file = open(args.dump, 'wb')
-        ctx.enter_context(dump_file)
-      except Exception as e:
-        logging.fatal(f'Failed to open dump file! {e}')
-        exit(1)
-    else:
-      dump_file = None
+    try:
+      dump_file = open(f"back dump {datetime.now().isoformat()}.zcp", 'wb')
+    except Exception as e:
+      logging.fatal(f'Failed to open dump file! {e}')
+      exit(1)
+
+    ctx.enter_context(dump_file)
 
     logging.info("Starting.")
 
-
-    last_seq_id = None
-
     # Run the logger indefinitely.
+    last_seq_id = None
     while True:
       try:
         frame = zcp_read(source, crc_calculator, dump_file)
         msg = parse_frame(log_def, frame)
         if msg is not None:
           if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
-            msg_logger.warning("!! SEQUENCE ID GAP !!")
+            logging.warning("!! SEQUENCE ID GAP !!")
           last_seq_id = msg.seq_id
 
-          log_msg(msg_logger, msg)
+          log_msg(msg)
       
       except KeyboardInterrupt:
         logging.info("Exiting due to CTRL+C.")

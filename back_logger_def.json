@@ -8,21 +8,78 @@
       "name": "AutonomousLaunchStateChanged",
       "fmt": "Autonomous launch transition to state {state}",
       "fields": [
-        { "name": "state", "type": "u8" }
+        {
+          "name": "state",
+          "type": "u8",
+          "fmt_enum": {
+            "values": [
+              "Waiting",
+              "Pull clutch",
+              "Change gear",
+              "Set LC",
+              "Wait before accelerating",
+              "Accelerate",
+              "Release clutch",
+              "Accelerate to 15",
+              "Done"
+            ]
+          }
+        }
       ]
     },
     "2": {
       "name": "ClutchStateChanged",
       "fmt": "Clutch state changed to {state}",
       "fields": [
-        { "name": "state", "type": "u8" }
+        {
+          "name": "state",
+          "type": "u8",
+          "fmt_enum": [
+            "Unknown",
+            "Disengaged",
+            "Engaged"
+          ]
+        }
       ]
     },
     "3": {
       "name": "EbsCheckStateChanged",
       "fmt": "EBS check state changed to {state}",
       "fields": [
-        { "name": "state", "type": "u8" }
+        {
+          "name": "state",
+          "type": "u8",
+          "fmt_enum": [
+            "Idle",
+
+            "Start watchdog",
+            "SDC wait high",
+            "Stop watchdog",
+            "SDC wait low",
+            "Retoggle watchdog",
+
+            "EBS pressure ok",
+
+            "Activate ts",
+            "Wait TS activation",
+            "Wait TS activated",
+
+            "No brake pressure",
+
+            "Enable actuator 1",
+            "Actuator 1 builds brake pressure",
+            "Disable actuator 1",
+            "Actuator 1 releases brake pressure",
+
+            "Enable actuator 2",
+            "Actuator 2 builds brake pressure",
+            "Disable actuator 2",
+            "Actuator 2 releases brake pressure",
+
+            "Ready",
+            "Error"
+          ]
+        }
       ]
     },
     "4": {
@@ -40,14 +97,32 @@
       "name": "LaunchControlChanged",
       "fmt": "LC changed to {state}",
       "fields": [
-        { "name": "state", "type": "u8" }
+        {
+          "name": "state",
+          "type": "u8",
+          "fmt_enum": [
+            "Undecidable",
+            "Disengaged",
+            "Engaged"
+          ]
+        }
       ]
     },
     "7": {
       "name": "ManualStateChanged",
       "fmt": "Manual state changed to {state}",
       "fields": [
-        { "name": "state", "type": "u8" }
+        {
+          "name": "state",
+          "type": "u8",
+          "fmt_enum": [
+            "Entry point",
+            "Wait TS",
+            "Wait SDC",
+            "EBS off",
+            "Running"
+          ] 
+        }
       ]
     },
     "8": {
@@ -107,7 +182,46 @@
       "name": "MissionChanged",
       "fmt": "Mission changed to {mission}",
       "fields": [
-        { "name": "mission", "type": "u8" }
+        {
+          "name": "mission",
+          "type": "u8",
+          "fmt_enum": [
+            "Idle",
+            "Acceleration",
+            "Skidpad",
+            "Autocross",
+            "Trackdrive",
+            "Ebs Test",
+            "Inspection",
+            "Manual",
+            "Debug",
+            "Finished"
+          ]
+        }
+      ]
+    },
+    "20": {
+      "name": "BusOff",
+      "fmt": "CAN bus off (error register ESR): {esr}",
+      "fields": [
+        { "name": "esr", "type": "u32" }
+      ]
+    },
+    "21": {
+      "name": "GearChanged",
+      "fmt": "Gear changed to {gear}",
+      "fields": [
+        { "name": "gear", "type": "u8" }
+      ]
+    },
+    "22": {
+      "name": "CanEsr",
+      "fmt": "CAN - boff: {boff}, rec:{rec}, tec:{tec}, esr:{esr}",
+      "fields": [
+        { "name": "esr", "type": "u32" },
+        { "name": "rec", "type": "u8" },
+        { "name": "tec", "type": "u8" },
+        { "name": "boff", "type": "bool" }
       ]
     }
   }
