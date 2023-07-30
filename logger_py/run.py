@@ -160,6 +160,14 @@ EXAMPLES:
         logging.fatal(f"Failed to open serial port! {e}")
         exit(1)
 
+      try:
+        dump_file = open(f"back dump {datetime.now().isoformat()}.zcp", 'wb')
+      except Exception as e:
+        logging.fatal(f'Failed to open dump file! {e}')
+        exit(1)
+
+      ctx.enter_context(dump_file)
+
     else:
       try:
         source = open(args.filename, 'rb')
@@ -168,14 +176,6 @@ EXAMPLES:
         exit(1)
     
     ctx.enter_context(source)
-
-    try:
-      dump_file = open(f"back dump {datetime.now().isoformat()}.zcp", 'wb')
-    except Exception as e:
-      logging.fatal(f'Failed to open dump file! {e}')
-      exit(1)
-
-    ctx.enter_context(dump_file)
 
     logging.info("Starting.")
 
