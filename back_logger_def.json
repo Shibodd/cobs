@@ -11,18 +11,16 @@
         {
           "name": "state",
           "type": "u8",
-          "fmt_enum": {
-            "values": [
-              "Waiting",
-              "Pull clutch",
-              "Change gear",
-              "Set LC",
-              "Wait before accelerating",
-              "Accelerate",
-              "Release clutch",
-              "Accelerate to 15",
-              "Done"
-            ]
+          "fmt_map": {
+            "0": "Waiting",
+            "1": "Pull clutch",
+            "2": "Change gear",
+            "3": "Set LC",
+            "4": "Wait before accelerating",
+            "5": "Accelerate",
+            "6": "Release clutch",
+            "7": "Accelerate to 15",
+            "8": "Done"
           }
         }
       ]
@@ -34,11 +32,11 @@
         {
           "name": "state",
           "type": "u8",
-          "fmt_enum": [
-            "Unknown",
-            "Disengaged",
-            "Engaged"
-          ]
+          "fmt_map": {
+            "0": "Undecidable",
+            "1": "Disengaged",
+            "2": "Engaged"
+          }
         }
       ]
     },
@@ -49,36 +47,36 @@
         {
           "name": "state",
           "type": "u8",
-          "fmt_enum": [
-            "Idle",
+          "fmt_map": {
+            "0": "Idle",
 
-            "Start watchdog",
-            "SDC wait high",
-            "Stop watchdog",
-            "SDC wait low",
-            "Retoggle watchdog",
+            "1": "Start watchdog",
+            "2": "SDC wait high",
+            "3": "Stop watchdog",
+            "4": "SDC wait low",
+            "5": "Retoggle watchdog",
 
-            "EBS pressure ok",
+            "6": "EBS pressure ok",
 
-            "Activate ts",
-            "Wait TS activation",
-            "Wait TS activated",
+            "7": "Activate ts",
+            "8": "Wait TS activation",
+            "9": "Wait TS activated",
 
-            "No brake pressure",
+            "10": "No brake pressure",
 
-            "Enable actuator 1",
-            "Actuator 1 builds brake pressure",
-            "Disable actuator 1",
-            "Actuator 1 releases brake pressure",
+            "11": "Enable actuator 1",
+            "12": "Actuator 1 builds brake pressure",
+            "13": "Disable actuator 1",
+            "14": "Actuator 1 releases brake pressure",
 
-            "Enable actuator 2",
-            "Actuator 2 builds brake pressure",
-            "Disable actuator 2",
-            "Actuator 2 releases brake pressure",
+            "15": "Enable actuator 2",
+            "16": "Actuator 2 builds brake pressure",
+            "17": "Disable actuator 2",
+            "18": "Actuator 2 releases brake pressure",
 
-            "Ready",
-            "Error"
-          ]
+            "19": "Ready",
+            "20": "Error"
+          }
         }
       ]
     },
@@ -100,11 +98,11 @@
         {
           "name": "state",
           "type": "u8",
-          "fmt_enum": [
-            "Undecidable",
-            "Disengaged",
-            "Engaged"
-          ]
+          "fmt_map": {
+            "0": "Unknown",
+            "1": "Set",
+            "2": "Not set"
+          }
         }
       ]
     },
@@ -115,13 +113,13 @@
         {
           "name": "state",
           "type": "u8",
-          "fmt_enum": [
-            "Entry point",
-            "Wait TS",
-            "Wait SDC",
-            "EBS off",
-            "Running"
-          ] 
+          "fmt_map": {
+            "0": "Entry point",
+            "1": "Wait TS",
+            "2": "Wait SDC",
+            "3": "EBS off",
+            "4": "Running"
+          }
         }
       ]
     },
@@ -185,18 +183,18 @@
         {
           "name": "mission",
           "type": "u8",
-          "fmt_enum": [
-            "Idle",
-            "Acceleration",
-            "Skidpad",
-            "Autocross",
-            "Trackdrive",
-            "Ebs Test",
-            "Inspection",
-            "Manual",
-            "Debug",
-            "Finished"
-          ]
+          "fmt_map": {
+            "0": "Idle",
+            "1": "Acceleration",
+            "2": "Skidpad",
+            "3": "Autocross",
+            "4": "Trackdrive",
+            "5": "Ebs Test",
+            "6": "Inspection",
+            "7": "Manual",
+            "8": "Debug",
+            "9": "Finished"
+          }
         }
       ]
     },

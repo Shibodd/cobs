@@ -91,9 +91,17 @@ def parse_frame(log_def: logger_def.LoggerDef, frame: bytes):
   return LogMsg(seq_id, tick, msg_def, values)
 
 from datetime import timedelta
+
+def fmt_value(value, field_def: logger_def.MessageFieldDef):
+  if field_def.fmt_map is not None:
+    return field_def.fmt_map.get(value, value)
+  return value
+
 def log_msg(msg: LogMsg):
   if msg.values is not None:
-    values_dict = dict(zip((field.name for field in msg.msg_def.fields), msg.values))
+    values = (fmt_value(value, field_def) for value, field_def in zip(msg.values, msg.msg_def.fields))
+
+    values_dict = dict(zip((field.name for field in msg.msg_def.fields), values))
     formatted = msg.msg_def.fmt.format(**values_dict)
   else:
     formatted = "MALFORMED"
