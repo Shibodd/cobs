@@ -223,6 +223,27 @@
         { "name": "tec", "type": "u8" },
         { "name": "boff", "type": "bool" }
       ]
+    },
+    "23": {
+      "name": "AppsPlausibilityChanged",
+      "fmt": "Apps plausibility changed: {plausible}",
+      "fields": [
+        { "name": "plausible", "type": "bool" }
+      ]
+    },
+    "24": {
+      "name": "UThrottlePlausibilityChanged",
+      "fmt": "uThrottle plausibility changed: {plausible}",
+      "fields": [
+        { "name": "plausible", "type": "bool" }
+      ]
+    },
+    "25": {
+      "name": "AthPlausibilityChanged",
+      "fmt": "Ath plausibility changed: {plausible}",
+      "fields": [
+        { "name": "plausible", "type": "bool" }
+      ]
     }
   }
 }
