@@ -44,9 +44,9 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
 
     # Verify CRC
     data = decoded[:-4]
-    received_crc = struct.unpack('<L', decoded[-4:])
+    # received_crc = struct.unpack('<L', decoded[-4:])
 
-    #if not crc_calculator.verify(data, received_crc):
+    #if received_crc != crc32mpeg2(data):
     #  logging.warning(f"Skipped a frame due to CRC mismatch!")
     #  continue
 
@@ -151,12 +151,12 @@ EXAMPLES:
 
   # Setup the CRC calculator
   crc_calculator = crc.Calculator(crc.Configuration(
-    width = 32,
-    polynomial = 0x4C11DB7,
-    init_value = 0xFFFFFFFF,
-    final_xor_value = 0,
-    reverse_input = False,
-    reverse_output = False
+    width=32,
+    polynomial=0x04C11DB7,
+    init_value=0xFFFFFFFF,
+    final_xor_value=0,
+    reverse_input=False,
+    reverse_output=False,
   ))
 
   with contextlib.ExitStack() as ctx:
