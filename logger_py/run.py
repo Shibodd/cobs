@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import contextlib
 import typing
 import itertools
+import pathlib
 
 def read_until(source, terminator: bytes, max_size: int):
   ans = bytearray()
@@ -127,18 +128,26 @@ if __name__ == '__main__':
   def parse_args():
     EPILOG = """\
 EXAMPLES:
-  %(prog)s my_definition.json serial /dev/ttyS0 9600
-  %(prog)s my_definition.json -d comms_dump.bin serial /dev/ttyS0 9600
-  %(prog)s my_definition.json replay comms_dump.bin\
+  %(prog)s my_definition.json serial /dev/ttyS0 9600 -o ~/logs
+  %(prog)s my_definition.json replay ~/logs/dump095533.zcp\
 """
     p = argparse.ArgumentParser(epilog = EPILOG, formatter_class = argparse.RawDescriptionHelpFormatter)
-    p.add_argument('def_file', help = 'The logger definition json file.')
+    p.add_argument('def_file',
+                   help = 'The logger definition json file.')
     
-    subp = p.add_subparsers(title = 'source', required = True, help = 'Where to read data from.', dest = 'source')
+    subp = p.add_subparsers(
+      title = 'source',
+      required = True,
+      help = 'Where to read data from.',
+      dest = 'source')
 
     ser_p = subp.add_parser('serial', help = 'Read from a serial port.')
     ser_p.add_argument('serial_port')
     ser_p.add_argument('baudrate')
+    ser_p.add_argument('-o', '--output-directory',
+      help = 'Override the directory where the dumps will be stored (default = .).',
+      default = '.',
+      type = pathlib.Path)
 
     file_p = subp.add_parser('replay', help = 'Read from a binary file.')
     file_p.add_argument('filename')
@@ -170,11 +179,11 @@ EXAMPLES:
         exit(1)
 
       try:
-        dump_file = open(f"back dump {datetime.now().isoformat()}.zcp", 'wb')
+        dump_file = (args.output_directory / f"{datetime.now().isoformat()}.zcp").open('wb')
       except Exception as e:
         logging.fatal(f'Failed to open dump file! {e}')
         exit(1)
-
+      
       ctx.enter_context(dump_file)
 
     else:
