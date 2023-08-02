@@ -1,7 +1,6 @@
 import logger_def
 import serial
 from cobs import cobs
-import crc
 import time
 from datetime import datetime
 import struct
@@ -9,6 +8,7 @@ import logging
 from dataclasses import dataclass
 import contextlib
 import typing
+import itertools
 
 def read_until(source, terminator: bytes, max_size: int):
   ans = bytearray()
@@ -23,7 +23,18 @@ def read_until(source, terminator: bytes, max_size: int):
 
   return ans
 
-def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO = None):
+def crc32mpeg2(data, crc=0xffffffff):
+  mod = len(data) % 4
+  if mod > 0:
+    data = itertools.chain(data, itertools.repeat(0, 4 - mod))
+  
+  for val in data:
+    crc ^= val << 24
+    for _ in range(8):
+      crc = crc << 1 if (crc & 0x80000000) == 0 else (crc << 1) ^ 0x104c11db7
+  return crc
+
+def zcp_read(source, dump_file: typing.BinaryIO = None):
   while True:
     # Assume data is always shorter than 256 bytes
     received = read_until(source, b'\0', 256)
@@ -44,11 +55,11 @@ def zcp_read(source, crc_calculator: crc.Calculator, dump_file: typing.BinaryIO 
 
     # Verify CRC
     data = decoded[:-4]
-    # received_crc = struct.unpack('<L', decoded[-4:])
+    (received_crc, ) = struct.unpack('<L', decoded[-4:])
 
-    #if not crc_calculator.verify(data, received_crc):
-    #  logging.warning(f"Skipped a frame due to CRC mismatch!")
-    #  continue
+    if received_crc != crc32mpeg2(data):
+      logging.warning(f"CRC mismatch in the next frame!")
+      # continue
 
     return data
 
@@ -149,16 +160,6 @@ EXAMPLES:
     logging.fatal("Failed to parse the logger definition file!", exc_info = True)
     exit(1)
 
-  # Setup the CRC calculator
-  crc_calculator = crc.Calculator(crc.Configuration(
-    width = 32,
-    polynomial = 0x4C11DB7,
-    init_value = 0xFFFFFFFF,
-    final_xor_value = 0,
-    reverse_input = False,
-    reverse_output = False
-  ))
-
   with contextlib.ExitStack() as ctx:
     # Initialize the source
     if args.source == 'serial':
@@ -193,7 +194,7 @@ EXAMPLES:
     last_seq_id = None
     while True:
       try:
-        frame = zcp_read(source, crc_calculator, dump_file)
+        frame = zcp_read(source, dump_file)
         msg = parse_frame(log_def, frame)
         if msg is not None:
           if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
