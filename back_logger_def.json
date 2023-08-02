@@ -133,9 +133,11 @@
     },
     "10": {
       "name": "ResButtonsChanged",
-      "fmt": "Res buttons changed to {buttons}",
+      "fmt": "Res buttons changed (EM: {emergency}, GO: {go}, BAG: {bag})",
       "fields": [
-        { "name": "buttons", "type": "u8" }
+        { "name": "emergency", "type": "bool" },
+        { "name": "go", "type": "bool" },
+        { "name": "bag", "type": "bool" }
       ]
     },
     "11": {
@@ -224,23 +226,53 @@
     },
     "23": {
       "name": "AppsPlausibilityChanged",
-      "fmt": "Apps plausibility changed: {plausible}",
+      "fmt": "Apps plausibility changed: {plausible} (in1: {appsIn1}, in2: {appsIn2})",
       "fields": [
-        { "name": "plausible", "type": "bool" }
+        { "name": "plausible", "type": "bool" },
+        { "name": "appsIn1", "type": "u16" },
+        { "name": "appsIn2", "type": "u16" }
       ]
     },
     "24": {
       "name": "UThrottlePlausibilityChanged",
-      "fmt": "uThrottle plausibility changed: {plausible}",
+      "fmt": "uThrottle plausibility changed: {plausible} (A: {uThrottleA}, B: {uThrottleB})",
       "fields": [
-        { "name": "plausible", "type": "bool" }
+        { "name": "plausible", "type": "bool" },
+        { "name": "uThrottleA", "type": "f32" },
+        { "name": "uThrottleB", "type": "f32" }
       ]
     },
     "25": {
       "name": "AthPlausibilityChanged",
-      "fmt": "Ath plausibility changed: {plausible}",
+      "fmt": "Ath plausibility changed: {plausible} (ath: {ath}, target: {targetAth})",
       "fields": [
-        { "name": "plausible", "type": "bool" }
+        { "name": "plausible", "type": "bool" },
+        { "name": "ath", "type": "u16" },
+        { "name": "targetAth", "type": "u16" }
+      ]
+    },
+    "26": {
+      "name": "PfuelOkChanged",
+      "fmt": "Pfuel ok changed: {ok} ({pfuel})",
+      "fields": [
+        { "name": "ok", "type": "bool" },
+        { "name": "pfuel", "type": "f32" }
+      ]
+    },
+    "27": {
+      "name": "EbsPressureOkChanged",
+      "fmt": "EBS Pressure ok changed: {ok} (1: {ebs1Pressure}, 2: {ebs2Pressure})",
+      "fields": [
+        { "name": "ok", "type": "bool" },
+        { "name": "ebs1Pressure", "type": "f32" },
+        { "name": "ebs2Pressure", "type": "f32" }
+      ]
+    },
+    "28": {
+      "name": "BrakesAppliedChanged",
+      "fmt": "Currently braking changed to: {brakesApplied}",
+      "fields": [
+        { "name": "brakesApplied", "type": "bool" }
       ]
     }
   }
