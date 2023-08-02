@@ -20,7 +20,7 @@ def read_until(source, terminator: bytes, max_size: int):
     if c:
       ans += c
     else:
-      break
+      time.sleep(0.1)
 
   return ans
 
@@ -157,7 +157,7 @@ EXAMPLES:
   args = parse_args()
 
   # Configure logging
-  logging.basicConfig(format='%(asctime)s [%(levelname)s] %(funcName)s: %(message)s', level=logging.DEBUG, stream = sys.stderr)
+  logging.basicConfig(format='%(asctime)s [%(levelname)s] %(funcName)s: %(message)s', level=logging.DEBUG, stream = sys.stdout)
 
   # Configure dependencies
   logging.info("Initializing dependencies...")
@@ -204,6 +204,7 @@ EXAMPLES:
     while True:
       try:
         frame = zcp_read(source, dump_file)
+
         msg = parse_frame(log_def, frame)
         if msg is not None:
           if last_seq_id is not None and (not (last_seq_id == 255 and msg.seq_id == 0)) and last_seq_id != msg.seq_id - 1:
