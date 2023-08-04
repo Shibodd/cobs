@@ -121,19 +121,24 @@ def log_msg(msg: LogMsg):
   logging.info(f"[{msg.seq_id:03}] @{timedelta(milliseconds=msg.tick).total_seconds():.03f}s : {formatted}")
 
 
+DEFAULT_ROOT = pathlib.Path('/home/raspberry/back_logger')
+DEFAULT_LOGS_DIR = DEFAULT_ROOT / 'logs'
+
 if __name__ == '__main__':
   import argparse
   import sys
-
+  
   def parse_args():
     EPILOG = """\
 EXAMPLES:
   %(prog)s my_definition.json serial /dev/ttyS0 9600 -o ~/logs
   %(prog)s my_definition.json replay ~/logs/dump095533.zcp\
 """
+
     p = argparse.ArgumentParser(epilog = EPILOG, formatter_class = argparse.RawDescriptionHelpFormatter)
-    p.add_argument('def_file',
-                   help = 'The logger definition json file.')
+    p.add_argument('-d', '--def_file',
+                   help = 'The logger definition json file.',
+                   default = DEFAULT_ROOT / 'back_logger_def.json')
     
     subp = p.add_subparsers(
       title = 'source',
@@ -142,15 +147,17 @@ EXAMPLES:
       dest = 'source')
 
     ser_p = subp.add_parser('serial', help = 'Read from a serial port.')
-    ser_p.add_argument('serial_port')
-    ser_p.add_argument('baudrate')
+    ser_p.add_argument('-s', '--serial_port', default = '/dev/serial0')
+    ser_p.add_argument('-b', '--baudrate', type = int, default = 112500)
     ser_p.add_argument('-o', '--output-directory',
-      help = 'Override the directory where the dumps will be stored (default = .).',
-      default = '.',
+      help = f'Override the directory where the dumps will be stored (default {DEFAULT_LOGS_DIR}).',
+      default = DEFAULT_LOGS_DIR,
       type = pathlib.Path)
 
     file_p = subp.add_parser('replay', help = 'Read from a binary file.')
-    file_p.add_argument('filename')
+    file_p.add_argument('-f', '--filename',
+                        help = f'The log file to read (default the most recent in {DEFAULT_LOGS_DIR})',
+                        default = None)
 
     return p.parse_args()
   
@@ -179,7 +186,15 @@ EXAMPLES:
         exit(1)
 
       try:
-        dump_file = (args.output_directory / f"{datetime.now().isoformat()}.zcp").open('wb')
+        timestamp = datetime.now()
+        out_path = pathlib.Path(
+          args.output_directory,
+          timestamp.strftime('%Y-%m-%d'),
+          timestamp.strftime('%H_%M_%S')
+        )
+        
+        out_path.parent.mkdir(parents = True, exist_ok = True)
+        dump_file = out_path.open('wb', buffering = 0)
       except Exception as e:
         logging.fatal(f'Failed to open dump file! {e}')
         exit(1)
@@ -187,8 +202,18 @@ EXAMPLES:
       ctx.enter_context(dump_file)
 
     else:
+      if args.filename is None:
+        try:
+          filename = max((x for x in DEFAULT_LOGS_DIR.rglob('*') if x.is_file()), 
+                         key = lambda p: p.stat().st_mtime)
+        except:
+          logging.fatal(f'No logs in default directory! Specify a file with -f.')
+          exit(1)
+      else:
+        filename = args.filename
+
       try:
-        source = open(args.filename, 'rb')
+        source = open(filename, 'rb')
       except Exception as e:
         logging.fatal(f"Failed to open file to replay! {e}")
         exit(1)
